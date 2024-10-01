@@ -6,7 +6,7 @@ This project uses the `qrcode` library, which is licensed under the following te
 
 - [Lincoln Loop Copyright (c) 2011, License](LICENSE)
 
-Additional details of the original library and contributors can be found in the included `LICENSE` file.
+
 
 =============================
 Pure python QR Code generator
