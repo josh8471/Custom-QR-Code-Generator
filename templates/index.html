@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom QR Code Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        input[type="text"], input[type="color"], input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            background-color: green;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: darkgreen;
+        }
+        #qr-result {
+            margin-top: 20px;
+        }
+        #qr-image {
+            display: none;
+            max-width: 100%;
+            margin-top: 20px;
+        }
+        #download-btn {
+            display: none;
+            margin-top: 20px;
+            padding: 10px;
+            background-color: blue;
+            color: white;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 5px;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Custom QR Code Generator</h1>
+        <form id="qr-form" action="/generate_qr" method="POST" enctype="multipart/form-data">
+            <label for="url">Enter URL:</label>
+            <input type="text" id="url" name="url" placeholder="https://example.com" required>
+
+            <label for="color">Choose QR Code Color:</label>
+            <input type="color" id="color" name="color" value="#000000">
+
+            <label for="logo">Upload Logo (Optional):</label>
+            <input type="file" id="logo" name="logo" accept="image/*">
+
+            <button type="submit">Generate QR Code</button>
+        </form>
+
+        <!-- Display the generated QR code here -->
+        <div id="qr-result">
+            <img id="qr-image" src="" alt="Generated QR Code">
+            <a id="download-btn" download="qr_code.png">Download QR Code</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('qr-form').onsubmit = async function(event) {
+            event.preventDefault();  // Prevent form from reloading the page
+            
+            const logoInput = document.getElementById('logo');
+            const file = logoInput.files[0];
+            
+            if (file) {
+                // Check file size (1 MB = 1024 * 1024 bytes)
+                if (file.size > 1048576) {
+                    alert("File size must be less than 1 MB.");
+                    return; // Stop form submission
+                }
+
+                const img = new Image();
+                img.src = URL.createObjectURL(file);
+                img.onload = function () {
+                    // If the image exceeds 250x250 pixels, resize it
+                    if (img.width > 250 || img.height > 250) {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        canvas.width = 250;
+                        canvas.height = 250;
+
+                        // Draw the resized image onto the canvas
+                        ctx.drawImage(img, 0, 0, 250, 250);
+
+                        // Convert the canvas back to a Blob for submission
+                        canvas.toBlob(function (blob) {
+                            // Replace the original file with the resized one
+                            submitForm(blob);
+                        });
+                    } else {
+                        submitForm(file);  // If the image is fine, just submit it
+                    }
+                };
+            } else {
+                submitForm();  // No logo, proceed with normal form submission
+            }
+
+            async function submitForm(resizedLogo) {
+                let formData = new FormData(document.getElementById('qr-form'));
+
+                // If a resized logo exists, append it to the form
+                if (resizedLogo) {
+                    formData.set('logo', resizedLogo, 'resized_logo.png');
+                }
+
+                const response = await fetch('/generate_qr', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const qrBlob = await response.blob();
+                const qrUrl = URL.createObjectURL(qrBlob);
+
+                // Display the QR code
+                const qrImage = document.getElementById('qr-image');
+                qrImage.src = qrUrl;
+                qrImage.style.display = 'block';
+
+                // Set up the download link
+                const downloadBtn = document.getElementById('download-btn');
+                downloadBtn.href = qrUrl;
+                downloadBtn.style.display = 'inline-block';
+            }
+        };
+    </script>
+</body>
+</html>
